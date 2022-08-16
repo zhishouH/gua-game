@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>gugame</title>
+  <style>
+    #id-canvas {
+      border: 1px solid #000;
+      margin: 50px;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="id-canvas" width="400" height="300"></canvas>
+  <script>
+    /* util */
+    const log = console.log.bind(console)
+
+    /* 生成图片 */
+    const imageFromPath = (path) => {
+      const img = new Image()
+      img.src = path
+      return img
+    }
+
+    /* 挡板 */
+    const Paddle = () => {
+      const image = imageFromPath('./img/paddle.png')
+      return {
+        image: image,
+        x: 110,
+        y: 250,
+        speed: 5,
+        moveLeft() {
+          this.x -= this.speed
+        },
+        moveRight() {
+          this.x += this.speed
+        },
+      }
+    }
+
+    /* canvas */
+    const GuaGame = () => {
+      const canvas = document.querySelector('#id-canvas')
+      const context = canvas.getContext('2d')
+      const g = {
+        canvas: canvas,
+        context: context,
+        actions: {},
+        keydowns: {}
+      }
+
+      // event
+      window.addEventListener('keydown', (ev) => {
+        g.keydowns[ev.keyCode] = true
+      })
+      window.addEventListener('keyup', (ev) => {
+        g.keydowns[ev.keyCode] = false
+      })
+      g.registerAction = function (key, callback) {
+        g.actions[key] = callback
+      }
+      // timer
+      setInterval(() => {
+        /* event */
+
+
+        /* update */
+        g.updated()
+        /* clear */
+        g.context.clearRect(0, 0, canvas.width, canvas.height)
+        /* draw */
+        g.draw()
+      }, 1000 / 60)
+      return g
+    }
+
+    const __main = () => {
+      const game = GuaGame()
+      const paddle = Paddle()
+
+      let leftDown = false, rightDown = false
+      /* 移动事件 */
+      window.addEventListener('keydown', (ev) => {
+        let key = ev.keyCode
+        if (key === 65) {
+          leftDown = true
+        } else if (key === 68) {
+          rightDown = true
+        }
+      })
+      window.addEventListener('keyup', (ev) => {
+        let key = ev.keyCode
+        if (key === 65) {
+          leftDown = false
+        } else if (key === 68) {
+          rightDown = false
+        }
+      })
+
+      game.updated = () => {
+        if (leftDown) {
+          paddle.moveLeft()
+        } else if (rightDown) {
+          paddle.moveRight()
+        }
+      }
+      game.draw = function () {
+        this.context.drawImage(paddle.image, paddle.x, paddle.y)
+      }
+    }
+    __main()
+  </script>
+</body>
+
+</html>
