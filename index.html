@@ -7,15 +7,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>gugame</title>
   <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    #container {
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(224.37deg, #C6FFF4 16.17%, #87FFE8 39.71%, rgba(32, 64, 226, 0.1) 85.33%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
     #id-canvas {
-      border: 1px solid #000;
-      margin: 50px;
+      background: #fff;
+      border-radius: 8px;
     }
   </style>
 </head>
 
 <body>
-  <canvas id="id-canvas" width="400" height="300"></canvas>
+  <div id="container">
+    <canvas id="id-canvas" width="400" height="300"></canvas>
+  </div>
   <script>
     /* util */
     const log = console.log.bind(console)
@@ -29,7 +45,7 @@
 
     /* 挡板 */
     const Paddle = () => {
-      const image = imageFromPath('./img/paddle.png')
+      const image = imageFromPath('./img/paddle.jpg')
       return {
         image: image,
         x: 110,
@@ -40,6 +56,43 @@
         },
         moveRight() {
           this.x += this.speed
+        },
+        collide(ball) {
+          if (ball.y + ball.image.height > this.y) {
+            if (ball.x > this.x && ball.x < this.x + this.image.width) {
+              return true
+            }
+          }
+          return false
+        }
+      }
+    }
+
+    /* 球 */
+    const Ball = () => {
+      const image = imageFromPath('./img/ball.svg')
+      return {
+        image: image,
+        x: 110,
+        y: 200,
+        speedX: 4,
+        speedY: 4,
+        fired: false,
+        fire() {
+          this.fired = true
+        },
+        move() {
+          if (this.fired) {
+            if (this.x < 0 || this.x > 400) {
+              this.speedX *= -1
+            }
+            if (this.y < 0 || this.y > 300) {
+              this.speedY *= -1
+            }
+            /* move */
+            this.x += this.speedX
+            this.y += this.speedY
+          }
         },
       }
     }
@@ -52,9 +105,11 @@
         canvas: canvas,
         context: context,
         actions: {},
-        keydowns: {}
+        keydowns: {},
+        drawImage(guaImage) {
+          this.context.drawImage(guaImage.image, guaImage.x, guaImage.y)
+        }
       }
-
       // event
       window.addEventListener('keydown', (ev) => {
         g.keydowns[ev.keyCode] = true
@@ -63,17 +118,23 @@
         g.keydowns[ev.keyCode] = false
       })
       g.registerAction = function (key, callback) {
-        g.actions[key] = callback
+        this.actions[key] = callback
       }
       // timer
       setInterval(() => {
         /* event */
-
-
+        const actions = Object.keys(g.actions)
+        for (let i = 0; i < actions.length; i++) {
+          const key = actions[i]
+          if (g.keydowns[key]) {
+            /* 如果按键被按下调用注册的actions */
+            g.actions[key]()
+          }
+        }
         /* update */
         g.updated()
         /* clear */
-        g.context.clearRect(0, 0, canvas.width, canvas.height)
+        g.context.clearRect(0, 0, g.canvas.width, g.canvas.height)
         /* draw */
         g.draw()
       }, 1000 / 60)
@@ -83,35 +144,21 @@
     const __main = () => {
       const game = GuaGame()
       const paddle = Paddle()
+      const ball = Ball()
 
-      let leftDown = false, rightDown = false
-      /* 移动事件 */
-      window.addEventListener('keydown', (ev) => {
-        let key = ev.keyCode
-        if (key === 65) {
-          leftDown = true
-        } else if (key === 68) {
-          rightDown = true
-        }
-      })
-      window.addEventListener('keyup', (ev) => {
-        let key = ev.keyCode
-        if (key === 65) {
-          leftDown = false
-        } else if (key === 68) {
-          rightDown = false
-        }
-      })
-
-      game.updated = () => {
-        if (leftDown) {
-          paddle.moveLeft()
-        } else if (rightDown) {
-          paddle.moveRight()
+      game.registerAction(65, () => { paddle.moveLeft() })
+      game.registerAction(68, () => { paddle.moveRight() })
+      game.registerAction(32, () => { ball.fire() })
+      game.updated = function () {
+        ball.move()
+        /* 判断相撞 */
+        if (paddle.collide(ball)) {
+          ball.speedY *= -1
         }
       }
       game.draw = function () {
-        this.context.drawImage(paddle.image, paddle.x, paddle.y)
+        game.drawImage(paddle)
+        game.drawImage(ball)
       }
     }
     __main()
